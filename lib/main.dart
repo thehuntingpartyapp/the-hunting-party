@@ -1,6 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const HuntingPartyApp());
 }
 
@@ -13,14 +22,55 @@ class HuntingPartyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'The Hunting Party',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF1B4332),
-          brightness: Brightness.dark,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF111714),
+        brightness: Brightness.dark,
+        colorSchemeSeed: const Color(0xFF1B4332),
         useMaterial3: true,
       ),
-      home: const WelcomeScreen(),
+      home: const SplashScreen(),
+    );
+  }
+}
+
+class SplashScreen extends StatefulWidget {
+  const SplashScreen({super.key});
+
+  @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen> {
+
+ @override
+void initState() {
+  super.initState();
+
+  Future.delayed(
+    const Duration(seconds: 3),
+    () {
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const WelcomeScreen(),
+        ),
+      );
+    },
+  );
+}
+  @override
+  Widget build(BuildContext context) {
+
+    return const Scaffold(
+      body: Center(
+        child: Text(
+          "THE HUNTING PARTY",
+          style: TextStyle(
+            fontSize: 34,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -30,60 +80,15 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.groups,
-                  size: 96,
-                  color: Color(0xFFFF6B00),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'THE HUNTING PARTY',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 34,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Plan together. Hunt together. Remember together.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white70,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                SizedBox(
-                  width: 260,
-                  height: 54,
-                  child: FilledButton(
-                    onPressed: () {},
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFFF6B00),
-                      foregroundColor: Colors.white,
-                    ),
-                    child: const Text(
-                      'GET STARTED',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+      appBar: AppBar(
+        title: const Text("Welcome"),
+      ),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () {},
+          child: const Text("Get Started"),
         ),
       ),
     );
