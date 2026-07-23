@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'tasks_screen.dart';
+import 'invite_member_screen.dart';
 
 class PartyDetailsScreen extends StatelessWidget {
   const PartyDetailsScreen({
@@ -45,9 +46,17 @@ class PartyDetailsScreen extends StatelessWidget {
           _PartyFeatureCard(
             icon: Icons.people_outline,
             title: 'Members',
-            subtitle: 'View and manage party members.',
+            subtitle: 'Invite and manage party members.',
             onTap: () {
-              _showComingSoon(context, 'Members');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => InviteMemberScreen(
+                    partyId: partyId,
+                    partyName: partyName,
+                  ),
+                ),
+              );
             },
           ),
           _PartyFeatureCard(
