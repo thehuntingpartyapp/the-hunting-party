@@ -75,15 +75,30 @@ class _InviteMemberScreenState extends State<InviteMemberScreen> {
         return;
       }
 
-      await FirebaseFirestore.instance.collection('invitations').add({
-        'partyId': widget.partyId,
-        'partyName': widget.partyName,
-        'inviteeEmail': inviteeEmail,
-        'invitedById': user.uid,
-        'invitedByEmail': user.email ?? '',
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+final firestore = FirebaseFirestore.instance;
+final partyReference = firestore
+    .collection('huntingParties')
+    .doc(widget.partyId);
+final invitationReference =
+    firestore.collection('invitations').doc();
+
+final batch = firestore.batch();
+
+batch.update(partyReference, {
+  'invitedEmails': FieldValue.arrayUnion([inviteeEmail]),
+});
+
+batch.set(invitationReference, {
+  'partyId': widget.partyId,
+  'partyName': widget.partyName,
+  'inviteeEmail': inviteeEmail,
+  'invitedById': user.uid,
+  'invitedByEmail': user.email ?? '',
+  'status': 'pending',
+  'createdAt': FieldValue.serverTimestamp(),
+});
+
+await batch.commit();
 
       if (!mounted) return;
 

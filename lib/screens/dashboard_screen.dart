@@ -1,16 +1,14 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+
 import 'hunting_parties_screen.dart';
+import 'invitations_screen.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
-  Future<void> _signOut(BuildContext context) async {
+  Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
-
-    if (!context.mounted) return;
-
-    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
@@ -22,7 +20,7 @@ class DashboardScreen extends StatelessWidget {
         title: const Text('The Hunting Party'),
         actions: [
           IconButton(
-            onPressed: () => _signOut(context),
+            onPressed: _signOut,
             icon: const Icon(Icons.logout),
             tooltip: 'Sign out',
           ),
@@ -47,23 +45,42 @@ class DashboardScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             Card(
-  child: ListTile(
-    leading: const Icon(Icons.groups),
-    title: const Text('Hunting Parties'),
-    subtitle: const Text(
-      'Create or join your first hunting party.',
-    ),
-    trailing: const Icon(Icons.chevron_right),
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const HuntingPartiesScreen(),
-        ),
-      );
-    },
-  ),
-),
+              child: ListTile(
+                leading: const Icon(Icons.groups),
+                title: const Text('Hunting Parties'),
+                subtitle: const Text(
+                  'Create or join your first hunting party.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HuntingPartiesScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: ListTile(
+                leading: const Icon(Icons.mail_outline),
+                title: const Text('Invitations'),
+                subtitle: const Text(
+                  'View invitations to join hunting parties.',
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const InvitationsScreen(),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),
