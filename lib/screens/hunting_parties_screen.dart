@@ -1,13 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'party_details_screen.dart';
 
 class HuntingPartiesScreen extends StatefulWidget {
   const HuntingPartiesScreen({super.key});
 
   @override
-  State<HuntingPartiesScreen> createState() =>
-      _HuntingPartiesScreenState();
+  State<HuntingPartiesScreen> createState() => _HuntingPartiesScreenState();
 }
 
 class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
@@ -55,24 +55,18 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
                   ? null
                   : () async {
                       final name = nameController.text.trim();
-                      final description =
-                          descriptionController.text.trim();
+                      final description = descriptionController.text.trim();
 
                       if (name.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Enter a party name.'),
-                          ),
+                          const SnackBar(content: Text('Enter a party name.')),
                         );
                         return;
                       }
 
                       Navigator.pop(dialogContext);
 
-                      await _createParty(
-                        name: name,
-                        description: description,
-                      );
+                      await _createParty(name: name, description: description);
                     },
               child: const Text('Create'),
             ),
@@ -94,11 +88,9 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
     if (user == null) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must be signed in.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You must be signed in.')));
       return;
     }
 
@@ -117,19 +109,15 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hunting party created.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Hunting party created.')));
     } on FirebaseException catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            error.message ?? 'Unable to create the hunting party.',
-          ),
+          content: Text(error.message ?? 'Unable to create the hunting party.'),
         ),
       );
     } finally {
@@ -146,9 +134,7 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hunting Parties'),
-      ),
+      appBar: AppBar(title: const Text('Hunting Parties')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isCreating ? null : _showCreatePartyDialog,
         icon: _isCreating
@@ -161,9 +147,7 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
         label: Text(_isCreating ? 'Creating...' : 'Create Party'),
       ),
       body: user == null
-          ? const Center(
-              child: Text('Sign in to view your hunting parties.'),
-            )
+          ? const Center(child: Text('Sign in to view your hunting parties.'))
           : StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('huntingParties')
@@ -183,11 +167,8 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
                   );
                 }
 
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
-                  );
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final parties = snapshot.data?.docs ?? [];
@@ -199,10 +180,7 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(
-                            Icons.groups_outlined,
-                            size: 72,
-                          ),
+                          Icon(Icons.groups_outlined, size: 72),
                           SizedBox(height: 20),
                           Text(
                             'No hunting parties yet',
@@ -227,23 +205,29 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
                   itemCount: parties.length,
                   itemBuilder: (context, index) {
                     final party = parties[index].data();
-                    final name =
-                        party['name'] as String? ?? 'Unnamed Party';
-                    final description =
-                        party['description'] as String? ?? '';
+                    final name = party['name'] as String? ?? 'Unnamed Party';
+                    final description = party['description'] as String? ?? '';
 
                     return Card(
                       child: ListTile(
-                        leading: const CircleAvatar(
-                          child: Icon(Icons.groups),
-                        ),
+                        leading: const CircleAvatar(child: Icon(Icons.groups)),
                         title: Text(name),
                         subtitle: Text(
-                          description.isEmpty
-                              ? 'No description'
-                              : description,
+                          description.isEmpty ? 'No description' : description,
                         ),
                         trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PartyDetailsScreen(
+                                partyId: parties[index].id,
+                                partyName: name,
+                                description: description,
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     );
                   },
