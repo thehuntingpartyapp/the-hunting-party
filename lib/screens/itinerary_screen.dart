@@ -1,89 +1,81 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-import 'trip_details_screen.dart';
-
-class TripsScreen extends StatefulWidget {
-  const TripsScreen({
+class ItineraryScreen extends StatefulWidget {
+  const ItineraryScreen({
     super.key,
     required this.partyId,
-    required this.partyName,
+    required this.tripId,
+    required this.tripName,
   });
 
   final String partyId;
-  final String partyName;
+  final String tripId;
+  final String tripName;
 
   @override
-  State<TripsScreen> createState() => _TripsScreenState();
+  State<ItineraryScreen> createState() => _ItineraryScreenState();
 }
 
-class _TripsScreenState extends State<TripsScreen> {
+class _ItineraryScreenState extends State<ItineraryScreen> {
   bool _isSaving = false;
 
-  CollectionReference<Map<String, dynamic>> get _tripsCollection {
+  CollectionReference<Map<String, dynamic>> get _itineraryCollection {
     return FirebaseFirestore.instance
         .collection('huntingParties')
         .doc(widget.partyId)
-        .collection('trips');
+        .collection('trips')
+        .doc(widget.tripId)
+        .collection('itinerary');
   }
 
-  Future<void> _showCreateTripDialog() async {
-    final nameController = TextEditingController();
-    final speciesController = TextEditingController();
+  Future<void> _showAddItemDialog() async {
+    final titleController = TextEditingController();
     final locationController = TextEditingController();
     final notesController = TextEditingController();
 
-    DateTime? startDate;
-    DateTime? endDate;
+    DateTime selectedDate = DateUtils.dateOnly(DateTime.now());
+    TimeOfDay selectedTime = TimeOfDay.now();
 
     await showDialog<void>(
       context: context,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            Future<void> selectStartDate() async {
-              final selectedDate = await showDatePicker(
+            Future<void> chooseDate() async {
+              final result = await showDatePicker(
                 context: context,
-                initialDate: startDate ?? DateTime.now(),
+                initialDate: selectedDate,
                 firstDate: DateTime.now().subtract(
-                  const Duration(days: 365),
+                  const Duration(days: 3650),
                 ),
                 lastDate: DateTime.now().add(
                   const Duration(days: 3650),
                 ),
               );
 
-              if (selectedDate != null) {
+              if (result != null) {
                 setDialogState(() {
-                  startDate = selectedDate;
-
-                  if (endDate != null &&
-                      endDate!.isBefore(selectedDate)) {
-                    endDate = selectedDate;
-                  }
+                  selectedDate = result;
                 });
               }
             }
 
-            Future<void> selectEndDate() async {
-              final selectedDate = await showDatePicker(
+            Future<void> chooseTime() async {
+              final result = await showTimePicker(
                 context: context,
-                initialDate: endDate ?? startDate ?? DateTime.now(),
-                firstDate: startDate ?? DateTime.now(),
-                lastDate: DateTime.now().add(
-                  const Duration(days: 3650),
-                ),
+                initialTime: selectedTime,
               );
 
-              if (selectedDate != null) {
+              if (result != null) {
                 setDialogState(() {
-                  endDate = selectedDate;
+                  selectedTime = result;
                 });
               }
             }
 
             return AlertDialog(
-              title: const Text('Create Trip'),
+              title: const Text('Add Itinerary Item'),
               content: SizedBox(
                 width: 480,
                 child: SingleChildScrollView(
@@ -91,20 +83,11 @@ class _TripsScreenState extends State<TripsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       TextField(
-                        controller: nameController,
+                        controller: titleController,
                         autofocus: true,
                         decoration: const InputDecoration(
-                          labelText: 'Trip name',
-                          hintText: '2026 Alberta Moose Hunt',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: speciesController,
-                        decoration: const InputDecoration(
-                          labelText: 'Species',
-                          hintText: 'Moose',
+                          labelText: 'Activity',
+                          hintText: 'Leave camp for morning hunt',
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -112,39 +95,31 @@ class _TripsScreenState extends State<TripsScreen> {
                       TextField(
                         controller: locationController,
                         decoration: const InputDecoration(
-                          labelText: 'Location name',
-                          hintText: 'Northern Alberta',
+                          labelText: 'Location',
+                          hintText: 'North trailhead',
                           border: OutlineInputBorder(),
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: const Icon(
-                          Icons.calendar_today_outlined,
+                          Icons.calendar_month_outlined,
                         ),
-                        title: const Text('Start date'),
-                        subtitle: Text(
-                          startDate == null
-                              ? 'Select a date'
-                              : _formatDate(startDate!),
-                        ),
+                        title: const Text('Date'),
+                        subtitle: Text(_formatDate(selectedDate)),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: selectStartDate,
+                        onTap: chooseDate,
                       ),
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        leading: const Icon(
-                          Icons.event_available_outlined,
-                        ),
-                        title: const Text('End date'),
+                        leading: const Icon(Icons.schedule_outlined),
+                        title: const Text('Time'),
                         subtitle: Text(
-                          endDate == null
-                              ? 'Select a date'
-                              : _formatDate(endDate!),
+                          selectedTime.format(context),
                         ),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: selectEndDate,
+                        onTap: chooseTime,
                       ),
                       const SizedBox(height: 8),
                       TextField(
@@ -152,7 +127,7 @@ class _TripsScreenState extends State<TripsScreen> {
                         maxLines: 4,
                         decoration: const InputDecoration(
                           labelText: 'Notes',
-                          hintText: 'Meeting time, camp details, plans...',
+                          hintText: 'Meeting point, supplies, instructions...',
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -171,23 +146,12 @@ class _TripsScreenState extends State<TripsScreen> {
                   onPressed: _isSaving
                       ? null
                       : () async {
-                          final name = nameController.text.trim();
+                          final title = titleController.text.trim();
 
-                          if (name.isEmpty) {
+                          if (title.isEmpty) {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               const SnackBar(
-                                content: Text('Enter a trip name.'),
-                              ),
-                            );
-                            return;
-                          }
-
-                          if (startDate == null || endDate == null) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Select both a start and end date.',
-                                ),
+                                content: Text('Enter an activity.'),
                               ),
                             );
                             return;
@@ -195,16 +159,15 @@ class _TripsScreenState extends State<TripsScreen> {
 
                           Navigator.pop(dialogContext);
 
-                          await _createTrip(
-                            name: name,
-                            species: speciesController.text.trim(),
-                            locationName: locationController.text.trim(),
+                          await _addItem(
+                            title: title,
+                            location: locationController.text.trim(),
                             notes: notesController.text.trim(),
-                            startDate: startDate!,
-                            endDate: endDate!,
+                            date: selectedDate,
+                            time: selectedTime,
                           );
                         },
-                  child: const Text('Create'),
+                  child: const Text('Add'),
                 ),
               ],
             );
@@ -213,32 +176,37 @@ class _TripsScreenState extends State<TripsScreen> {
       },
     );
 
-    nameController.dispose();
-    speciesController.dispose();
+    titleController.dispose();
     locationController.dispose();
     notesController.dispose();
   }
 
-  Future<void> _createTrip({
-    required String name,
-    required String species,
-    required String locationName,
+  Future<void> _addItem({
+    required String title,
+    required String location,
     required String notes,
-    required DateTime startDate,
-    required DateTime endDate,
+    required DateTime date,
+    required TimeOfDay time,
   }) async {
     setState(() {
       _isSaving = true;
     });
 
     try {
-      await _tripsCollection.add({
-        'name': name,
-        'species': species,
-        'locationName': locationName,
+      final scheduledAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        time.hour,
+        time.minute,
+      );
+
+      await _itineraryCollection.add({
+        'title': title,
+        'location': location,
         'notes': notes,
-        'startDate': Timestamp.fromDate(startDate),
-        'endDate': Timestamp.fromDate(endDate),
+        'scheduledAt': Timestamp.fromDate(scheduledAt),
+        'isComplete': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -246,7 +214,7 @@ class _TripsScreenState extends State<TripsScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Trip created.'),
+          content: Text('Itinerary item added.'),
         ),
       );
     } on FirebaseException catch (error) {
@@ -255,7 +223,7 @@ class _TripsScreenState extends State<TripsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            error.message ?? 'Unable to create the trip.',
+            error.message ?? 'Unable to add the itinerary item.',
           ),
         ),
       );
@@ -268,16 +236,37 @@ class _TripsScreenState extends State<TripsScreen> {
     }
   }
 
-  Future<void> _deleteTrip(String tripId) async {
+  Future<void> _toggleComplete({
+    required String itemId,
+    required bool currentlyComplete,
+  }) async {
     try {
-      await _tripsCollection.doc(tripId).delete();
+      await _itineraryCollection.doc(itemId).update({
+        'isComplete': !currentlyComplete,
+      });
     } on FirebaseException catch (error) {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            error.message ?? 'Unable to delete the trip.',
+            error.message ?? 'Unable to update the itinerary.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _deleteItem(String itemId) async {
+    try {
+      await _itineraryCollection.doc(itemId).delete();
+    } on FirebaseException catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            error.message ?? 'Unable to delete the itinerary item.',
           ),
         ),
       );
@@ -303,34 +292,38 @@ class _TripsScreenState extends State<TripsScreen> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
+  static String _formatTime(BuildContext context, DateTime date) {
+    return TimeOfDay.fromDateTime(date).format(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.partyName} Trips'),
+        title: Text('${widget.tripName} Itinerary'),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _isSaving ? null : _showCreateTripDialog,
+        onPressed: _isSaving ? null : _showAddItemDialog,
         icon: _isSaving
             ? const SizedBox(
                 width: 20,
                 height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                ),
+                child: CircularProgressIndicator(strokeWidth: 2),
               )
             : const Icon(Icons.add),
-        label: Text(_isSaving ? 'Saving...' : 'Create Trip'),
+        label: Text(_isSaving ? 'Adding...' : 'Add Activity'),
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _tripsCollection.orderBy('startDate').snapshots(),
+        stream: _itineraryCollection
+            .orderBy('scheduledAt')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Unable to load trips.\n${snapshot.error}',
+                  'Unable to load the itinerary.\n${snapshot.error}',
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -343,22 +336,19 @@ class _TripsScreenState extends State<TripsScreen> {
             );
           }
 
-          final trips = snapshot.data?.docs ?? [];
+          final items = snapshot.data?.docs ?? [];
 
-          if (trips.isEmpty) {
+          if (items.isEmpty) {
             return const Center(
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.calendar_month_outlined,
-                      size: 72,
-                    ),
+                    Icon(Icons.route_outlined, size: 72),
                     SizedBox(height: 20),
                     Text(
-                      'No trips yet',
+                      'No itinerary yet',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -366,7 +356,7 @@ class _TripsScreenState extends State<TripsScreen> {
                     ),
                     SizedBox(height: 8),
                     Text(
-                      'Create a trip to start planning your next hunt.',
+                      'Add the schedule for each day of the hunt.',
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -377,42 +367,48 @@ class _TripsScreenState extends State<TripsScreen> {
 
           return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: trips.length,
+            itemCount: items.length,
             itemBuilder: (context, index) {
-              final document = trips[index];
-              final trip = document.data();
+              final document = items[index];
+              final item = document.data();
 
-              final name = trip['name'] as String? ?? 'Unnamed Trip';
-              final species = trip['species'] as String? ?? '';
-              final locationName =
-                  trip['locationName'] as String? ?? '';
-              final notes = trip['notes'] as String? ?? '';
+              final title =
+                  item['title'] as String? ?? 'Unnamed activity';
+              final location = item['location'] as String? ?? '';
+              final notes = item['notes'] as String? ?? '';
+              final isComplete =
+                  item['isComplete'] as bool? ?? false;
 
-              final startTimestamp =
-                  trip['startDate'] as Timestamp?;
-              final endTimestamp =
-                  trip['endDate'] as Timestamp?;
-
-              final startDate = startTimestamp?.toDate();
-              final endDate = endTimestamp?.toDate();
+              final timestamp = item['scheduledAt'] as Timestamp?;
+              final scheduledAt = timestamp?.toDate();
 
               return Card(
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    child: Icon(Icons.calendar_month_outlined),
+                child: CheckboxListTile(
+                  value: isComplete,
+                  onChanged: (_) {
+                    _toggleComplete(
+                      itemId: document.id,
+                      currentlyComplete: isComplete,
+                    );
+                  },
+                  title: Text(
+                    title,
+                    style: TextStyle(
+                      decoration: isComplete
+                          ? TextDecoration.lineThrough
+                          : null,
+                    ),
                   ),
-                  title: Text(name),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (species.isNotEmpty) Text(species),
-                      if (locationName.isNotEmpty)
-                        Text(locationName),
-                      if (startDate != null && endDate != null)
+                      if (scheduledAt != null)
                         Text(
-                          '${_formatDate(startDate)} – '
-                          '${_formatDate(endDate)}',
+                          '${_formatDate(scheduledAt)} at '
+                          '${_formatTime(context, scheduledAt)}',
                         ),
+                      if (location.isNotEmpty)
+                        Text('Location: $location'),
                       if (notes.isNotEmpty)
                         Text(
                           notes,
@@ -421,22 +417,11 @@ class _TripsScreenState extends State<TripsScreen> {
                         ),
                     ],
                   ),
-                  trailing: IconButton(
-                    tooltip: 'Delete trip',
-                    onPressed: () => _deleteTrip(document.id),
+                  secondary: IconButton(
+                    tooltip: 'Delete activity',
+                    onPressed: () => _deleteItem(document.id),
                     icon: const Icon(Icons.delete_outline),
                   ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => TripDetailsScreen(
-                          partyId: widget.partyId,
-                          tripId: document.id,
-                        ),
-                      ),
-                    );
-                  },
                 ),
               );
             },
