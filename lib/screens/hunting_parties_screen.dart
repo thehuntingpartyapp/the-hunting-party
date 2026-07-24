@@ -104,6 +104,7 @@ class _HuntingPartiesScreenState extends State<HuntingPartiesScreen> {
         'description': description,
         'ownerId': user.uid,
         'memberIds': [user.uid],
+        'memberEmails': [if (user.email != null) user.email!.toLowerCase()],
         'createdAt': FieldValue.serverTimestamp(),
       });
 

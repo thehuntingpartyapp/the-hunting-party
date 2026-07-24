@@ -10,38 +10,26 @@ class InvitationsScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Invitations'),
-      ),
+      appBar: AppBar(title: const Text('Invitations')),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('invitations')
-            .where(
-              'inviteeEmail',
-              isEqualTo: user?.email?.toLowerCase(),
-            )
+            .where('inviteeEmail', isEqualTo: user?.email?.toLowerCase())
             .where('status', isEqualTo: 'pending')
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(
-              child: Text(snapshot.error.toString()),
-            );
+            return Center(child: Text(snapshot.error.toString()));
           }
 
-          if (snapshot.connectionState ==
-              ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
-            );
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
 
           final invitations = snapshot.data?.docs ?? [];
 
           if (invitations.isEmpty) {
-            return const Center(
-              child: Text('No pending invitations'),
-            );
+            return const Center(child: Text('No pending invitations'));
           }
 
           return ListView.builder(
@@ -52,20 +40,16 @@ class InvitationsScreen extends StatelessWidget {
               return Card(
                 child: ListTile(
                   title: Text(invitation['partyName']),
-                  subtitle: Text(
-                    'Invited by ${invitation['invitedByEmail']}',
-                  ),
+                  subtitle: Text('Invited by ${invitation['invitedByEmail']}'),
                   trailing: FilledButton(
                     child: const Text('Accept'),
                     onPressed: () async {
                       await _acceptInvitation(invitation);
 
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(
+                        ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content:
-                                Text('Joined hunting party!'),
+                            content: Text('Joined hunting party!'),
                           ),
                         );
                       }
@@ -81,8 +65,8 @@ class InvitationsScreen extends StatelessWidget {
   }
 
   Future<void> _acceptInvitation(
-      QueryDocumentSnapshot<Map<String, dynamic>> invitation) async {
-
+    QueryDocumentSnapshot<Map<String, dynamic>> invitation,
+  ) async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) return;
@@ -93,24 +77,19 @@ class InvitationsScreen extends StatelessWidget {
         .collection('huntingParties')
         .doc(invitation['partyId']);
 
-    final invitationRef =
-        firestore.collection('invitations').doc(invitation.id);
+    final invitationRef = firestore
+        .collection('invitations')
+        .doc(invitation.id);
 
     await firestore.runTransaction((transaction) async {
+      transaction.update(partyRef, {
+        'memberIds': FieldValue.arrayUnion([user.uid]),
+        'memberEmails': FieldValue.arrayUnion([
+          if (user.email != null) user.email!.toLowerCase(),
+        ]),
+      });
 
-      transaction.update(
-        partyRef,
-        {
-          'memberIds': FieldValue.arrayUnion([user.uid]),
-        },
-      );
-
-      transaction.update(
-        invitationRef,
-        {
-          'status': 'accepted',
-        },
-      );
+      transaction.update(invitationRef, {'status': 'accepted'});
     });
   }
 }
