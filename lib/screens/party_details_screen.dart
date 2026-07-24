@@ -1,6 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'tasks_screen.dart';
+
 import 'invite_member_screen.dart';
+import 'members_screen.dart';
+import 'tasks_screen.dart';
 
 class PartyDetailsScreen extends StatelessWidget {
   const PartyDetailsScreen({
@@ -16,103 +19,167 @@ class PartyDetailsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final partyReference = FirebaseFirestore.instance
+        .collection('huntingParties')
+        .doc(partyId);
+
+    final tasksReference = partyReference.collection('tasks');
+
     return Scaffold(
       appBar: AppBar(title: Text(partyName)),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: partyReference.snapshots(),
+        builder: (context, partySnapshot) {
+          if (partySnapshot.hasError) {
+            return Center(
+              child: Text(
+                'Unable to load hunting party.\n${partySnapshot.error}',
+                textAlign: TextAlign.center,
+              ),
+            );
+          }
+
+          if (partySnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final partyData = partySnapshot.data?.data();
+
+          if (partyData == null) {
+            return const Center(child: Text('Hunting party not found.'));
+          }
+
+          final memberIds = List<String>.from(
+            partyData['memberIds'] as List? ?? const [],
+          );
+
+          final currentDescription =
+              partyData['description'] as String? ?? description;
+
+          return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: tasksReference.snapshots(),
+            builder: (context, tasksSnapshot) {
+              final tasks = tasksSnapshot.data?.docs ?? [];
+
+              final openTaskCount = tasks.where((document) {
+                final data = document.data();
+                return data['isComplete'] != true;
+              }).length;
+
+              return ListView(
+                padding: const EdgeInsets.all(16),
                 children: [
-                  Text(
-                    partyName,
-                    style: const TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  _PartyHeaderCard(
+                    partyName: partyName,
+                    description: currentDescription,
+                    memberCount: memberIds.length,
+                    openTaskCount: openTaskCount,
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    description.isEmpty ? 'No description added.' : description,
+                  const SizedBox(height: 20),
+                  GridView.count(
+                    crossAxisCount: MediaQuery.sizeOf(context).width >= 700
+                        ? 3
+                        : 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.08,
+                    children: [
+                      _DashboardTile(
+                        icon: Icons.people_outline,
+                        title: 'Members',
+                        value: '${memberIds.length}',
+                        subtitle: 'Party members',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MembersScreen(
+                                partyId: partyId,
+                                partyName: partyName,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.person_add_outlined,
+                        title: 'Invite',
+                        subtitle: 'Add a hunter',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => InviteMemberScreen(
+                                partyId: partyId,
+                                partyName: partyName,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.checklist_outlined,
+                        title: 'Tasks',
+                        value: '$openTaskCount',
+                        subtitle: 'Open tasks',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TasksScreen(partyId: partyId),
+                            ),
+                          );
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.calendar_month_outlined,
+                        title: 'Trips',
+                        subtitle: 'Plan a hunt',
+                        onTap: () {
+                          _showComingSoon(context, 'Trips');
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.backpack_outlined,
+                        title: 'Equipment',
+                        subtitle: 'Shared gear list',
+                        onTap: () {
+                          _showComingSoon(context, 'Equipment');
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.chat_bubble_outline,
+                        title: 'Chat',
+                        subtitle: 'Party messages',
+                        onTap: () {
+                          _showComingSoon(context, 'Chat');
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.photo_library_outlined,
+                        title: 'Photos',
+                        subtitle: 'Shared memories',
+                        onTap: () {
+                          _showComingSoon(context, 'Photos');
+                        },
+                      ),
+                      _DashboardTile(
+                        icon: Icons.emoji_events_outlined,
+                        title: 'Harvests',
+                        subtitle: 'Harvest log',
+                        onTap: () {
+                          _showComingSoon(context, 'Harvest Log');
+                        },
+                      ),
+                    ],
                   ),
                 ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          _PartyFeatureCard(
-            icon: Icons.people_outline,
-            title: 'Members',
-            subtitle: 'Invite and manage party members.',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => InviteMemberScreen(
-                    partyId: partyId,
-                    partyName: partyName,
-                  ),
-                ),
               );
             },
-          ),
-          _PartyFeatureCard(
-            icon: Icons.calendar_month_outlined,
-            title: 'Trips',
-            subtitle: 'Plan hunting dates and trip details.',
-            onTap: () {
-              _showComingSoon(context, 'Trips');
-            },
-          ),
-          _PartyFeatureCard(
-            icon: Icons.checklist_outlined,
-            title: 'Tasks',
-            subtitle: 'Assign and complete party tasks.',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TasksScreen(partyId: partyId),
-                ),
-              );
-            },
-          ),
-          _PartyFeatureCard(
-            icon: Icons.backpack_outlined,
-            title: 'Equipment',
-            subtitle: 'Track who is bringing each item.',
-            onTap: () {
-              _showComingSoon(context, 'Equipment');
-            },
-          ),
-          _PartyFeatureCard(
-            icon: Icons.chat_bubble_outline,
-            title: 'Chat',
-            subtitle: 'Message everyone in this hunting party.',
-            onTap: () {
-              _showComingSoon(context, 'Chat');
-            },
-          ),
-          _PartyFeatureCard(
-            icon: Icons.photo_library_outlined,
-            title: 'Photos',
-            subtitle: 'Share and preserve hunting memories.',
-            onTap: () {
-              _showComingSoon(context, 'Photos');
-            },
-          ),
-          _PartyFeatureCard(
-            icon: Icons.emoji_events_outlined,
-            title: 'Harvest Log',
-            subtitle: 'Record harvest details and photos.',
-            onTap: () {
-              _showComingSoon(context, 'Harvest Log');
-            },
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -124,28 +191,114 @@ class PartyDetailsScreen extends StatelessWidget {
   }
 }
 
-class _PartyFeatureCard extends StatelessWidget {
-  const _PartyFeatureCard({
+class _PartyHeaderCard extends StatelessWidget {
+  const _PartyHeaderCard({
+    required this.partyName,
+    required this.description,
+    required this.memberCount,
+    required this.openTaskCount,
+  });
+
+  final String partyName;
+  final String description;
+  final int memberCount;
+  final int openTaskCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.forest_outlined, size: 42),
+            const SizedBox(height: 14),
+            Text(
+              partyName,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(description.isEmpty ? 'No description added.' : description),
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                Chip(
+                  avatar: const Icon(Icons.people_outline, size: 18),
+                  label: Text(
+                    '$memberCount ${memberCount == 1 ? 'member' : 'members'}',
+                  ),
+                ),
+                Chip(
+                  avatar: const Icon(Icons.check_circle_outline, size: 18),
+                  label: Text(
+                    '$openTaskCount open ${openTaskCount == 1 ? 'task' : 'tasks'}',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardTile extends StatelessWidget {
+  const _DashboardTile({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.value,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
+  final String? value;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(child: Icon(icon)),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.chevron_right),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, size: 34),
+              const Spacer(),
+              if (value != null)
+                Text(
+                  value!,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              Text(
+                title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
