@@ -1,8 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'camp_screen.dart';
+import 'food_screen.dart';
+import 'hunters_screen.dart';
 import 'itinerary_screen.dart';
+import 'shopping_screen.dart';
+import 'trip_equipment_screen.dart';
 import 'vehicles_screen.dart';
+import 'readiness_screen.dart';
 
 class TripDetailsScreen extends StatelessWidget {
   const TripDetailsScreen({
@@ -29,9 +35,7 @@ class TripDetailsScreen extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Hunt Planner'),
-            ),
+            appBar: AppBar(title: const Text('Hunt Planner')),
             body: Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -46,12 +50,8 @@ class TripDetailsScreen extends StatelessWidget {
 
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Hunt Planner'),
-            ),
-            body: const Center(
-              child: CircularProgressIndicator(),
-            ),
+            appBar: AppBar(title: const Text('Hunt Planner')),
+            body: const Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -59,12 +59,8 @@ class TripDetailsScreen extends StatelessWidget {
 
         if (trip == null) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Hunt Planner'),
-            ),
-            body: const Center(
-              child: Text('Trip not found.'),
-            ),
+            appBar: AppBar(title: const Text('Hunt Planner')),
+            body: const Center(child: Text('Trip not found.')),
           );
         }
 
@@ -80,15 +76,10 @@ class TripDetailsScreen extends StatelessWidget {
         final endDate = endTimestamp?.toDate();
 
         final countdown = _calculateCountdown(startDate);
-        final duration = _calculateDuration(
-          startDate,
-          endDate,
-        );
+        final duration = _calculateDuration(startDate, endDate);
 
         return Scaffold(
-          appBar: AppBar(
-            title: Text(name),
-          ),
+          appBar: AppBar(title: Text(name)),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -111,10 +102,8 @@ class TripDetailsScreen extends StatelessWidget {
                       children: [
                         Text(
                           'Trip Notes',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 8),
                         Text(notes),
@@ -127,13 +116,12 @@ class TripDetailsScreen extends StatelessWidget {
               Text(
                 'Hunt Planner',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
               GridView.count(
-                crossAxisCount:
-                    MediaQuery.sizeOf(context).width >= 700 ? 3 : 2,
+                crossAxisCount: MediaQuery.sizeOf(context).width >= 700 ? 3 : 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 12,
@@ -160,11 +148,17 @@ class TripDetailsScreen extends StatelessWidget {
                   _PlannerTile(
                     icon: Icons.groups_outlined,
                     title: 'Hunters',
-                    subtitle: 'Attendance and roles',
+                    subtitle: 'Assignments and readiness',
                     onTap: () {
-                      _showComingSoon(
+                      Navigator.push(
                         context,
-                        'Hunters',
+                        MaterialPageRoute(
+                          builder: (_) => HuntersScreen(
+                            partyId: partyId,
+                            tripId: tripId,
+                            tripName: name,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -190,9 +184,15 @@ class TripDetailsScreen extends StatelessWidget {
                     title: 'Camp',
                     subtitle: 'Camp setup checklist',
                     onTap: () {
-                      _showComingSoon(
+                      Navigator.push(
                         context,
-                        'Camp',
+                        MaterialPageRoute(
+                          builder: (_) => CampScreen(
+                            partyId: partyId,
+                            tripId: tripId,
+                            tripName: name,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -201,9 +201,15 @@ class TripDetailsScreen extends StatelessWidget {
                     title: 'Food',
                     subtitle: 'Meals and supplies',
                     onTap: () {
-                      _showComingSoon(
+                      Navigator.push(
                         context,
-                        'Food',
+                        MaterialPageRoute(
+                          builder: (_) => FoodScreen(
+                            partyId: partyId,
+                            tripId: tripId,
+                            tripName: name,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -212,9 +218,15 @@ class TripDetailsScreen extends StatelessWidget {
                     title: 'Shopping',
                     subtitle: 'Shared shopping list',
                     onTap: () {
-                      _showComingSoon(
+                      Navigator.push(
                         context,
-                        'Shopping',
+                        MaterialPageRoute(
+                          builder: (_) => ShoppingScreen(
+                            partyId: partyId,
+                            tripId: tripId,
+                            tripName: name,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -223,20 +235,32 @@ class TripDetailsScreen extends StatelessWidget {
                     title: 'Equipment',
                     subtitle: 'Trip-specific gear',
                     onTap: () {
-                      _showComingSoon(
+                      Navigator.push(
                         context,
-                        'Trip Equipment',
+                        MaterialPageRoute(
+                          builder: (_) => TripEquipmentScreen(
+                            partyId: partyId,
+                            tripId: tripId,
+                            tripName: name,
+                          ),
+                        ),
                       );
                     },
                   ),
                   _PlannerTile(
-                    icon: Icons.cloud_outlined,
-                    title: 'Weather',
-                    subtitle: 'Forecast for the hunt',
+                    icon: Icons.monitor_heart_outlined,
+                    title: 'Readiness',
+                    subtitle: 'Trip completion status',
                     onTap: () {
-                      _showComingSoon(
+                      Navigator.push(
                         context,
-                        'Weather',
+                        MaterialPageRoute(
+                          builder: (_) => ReadinessScreen(
+                            partyId: partyId,
+                            tripId: tripId,
+                            tripName: name,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -260,10 +284,7 @@ class TripDetailsScreen extends StatelessWidget {
     return tripStart.difference(today).inDays;
   }
 
-  static int? _calculateDuration(
-    DateTime? startDate,
-    DateTime? endDate,
-  ) {
+  static int? _calculateDuration(DateTime? startDate, DateTime? endDate) {
     if (startDate == null || endDate == null) {
       return null;
     }
@@ -290,15 +311,10 @@ class TripDetailsScreen extends StatelessWidget {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  void _showComingSoon(
-    BuildContext context,
-    String featureName,
-  ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$featureName is coming next.'),
-      ),
-    );
+  void _showComingSoon(BuildContext context, String featureName) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$featureName is coming next.')));
   }
 }
 
@@ -343,16 +359,13 @@ class _TripHeaderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(
-              Icons.explore_outlined,
-              size: 44,
-            ),
+            const Icon(Icons.explore_outlined, size: 44),
             const SizedBox(height: 14),
             Text(
               tripName,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             if (species.isNotEmpty)
@@ -383,10 +396,7 @@ class _TripHeaderCard extends StatelessWidget {
               ),
             const SizedBox(height: 16),
             Chip(
-              avatar: const Icon(
-                Icons.hourglass_bottom_outlined,
-                size: 18,
-              ),
+              avatar: const Icon(Icons.hourglass_bottom_outlined, size: 18),
               label: Text(countdownText),
             ),
           ],
@@ -414,23 +424,16 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 20,
-          ),
+          Icon(icon, size: 20),
           const SizedBox(width: 10),
           SizedBox(
             width: 76,
             child: Text(
               label,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );
@@ -461,16 +464,13 @@ class _PlannerTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                icon,
-                size: 34,
-              ),
+              Icon(icon, size: 34),
               const Spacer(),
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 3),
               Text(
