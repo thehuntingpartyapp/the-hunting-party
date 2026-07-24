@@ -1,9 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'chat_screen.dart';
 import 'invite_member_screen.dart';
 import 'members_screen.dart';
 import 'tasks_screen.dart';
+import 'trips_screen.dart';
 
 class PartyDetailsScreen extends StatelessWidget {
   const PartyDetailsScreen({
@@ -26,32 +28,45 @@ class PartyDetailsScreen extends StatelessWidget {
     final tasksReference = partyReference.collection('tasks');
 
     return Scaffold(
-      appBar: AppBar(title: Text(partyName)),
+      appBar: AppBar(
+        title: Text(partyName),
+      ),
       body: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: partyReference.snapshots(),
         builder: (context, partySnapshot) {
           if (partySnapshot.hasError) {
             return Center(
-              child: Text(
-                'Unable to load hunting party.\n${partySnapshot.error}',
-                textAlign: TextAlign.center,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Unable to load hunting party.\n'
+                  '${partySnapshot.error}',
+                  textAlign: TextAlign.center,
+                ),
               ),
             );
           }
 
           if (partySnapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
           final partyData = partySnapshot.data?.data();
 
           if (partyData == null) {
-            return const Center(child: Text('Hunting party not found.'));
+            return const Center(
+              child: Text('Hunting party not found.'),
+            );
           }
 
           final memberIds = List<String>.from(
             partyData['memberIds'] as List? ?? const [],
           );
+
+          final currentName =
+              partyData['name'] as String? ?? partyName;
 
           final currentDescription =
               partyData['description'] as String? ?? description;
@@ -70,16 +85,15 @@ class PartyDetailsScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 children: [
                   _PartyHeaderCard(
-                    partyName: partyName,
+                    partyName: currentName,
                     description: currentDescription,
                     memberCount: memberIds.length,
                     openTaskCount: openTaskCount,
                   ),
                   const SizedBox(height: 20),
                   GridView.count(
-                    crossAxisCount: MediaQuery.sizeOf(context).width >= 700
-                        ? 3
-                        : 2,
+                    crossAxisCount:
+                        MediaQuery.sizeOf(context).width >= 700 ? 3 : 2,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisSpacing: 12,
@@ -97,7 +111,7 @@ class PartyDetailsScreen extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (_) => MembersScreen(
                                 partyId: partyId,
-                                partyName: partyName,
+                                partyName: currentName,
                               ),
                             ),
                           );
@@ -113,7 +127,7 @@ class PartyDetailsScreen extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (_) => InviteMemberScreen(
                                 partyId: partyId,
-                                partyName: partyName,
+                                partyName: currentName,
                               ),
                             ),
                           );
@@ -128,7 +142,9 @@ class PartyDetailsScreen extends StatelessWidget {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => TasksScreen(partyId: partyId),
+                              builder: (_) => TasksScreen(
+                                partyId: partyId,
+                              ),
                             ),
                           );
                         },
@@ -138,7 +154,15 @@ class PartyDetailsScreen extends StatelessWidget {
                         title: 'Trips',
                         subtitle: 'Plan a hunt',
                         onTap: () {
-                          _showComingSoon(context, 'Trips');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => TripsScreen(
+                                partyId: partyId,
+                                partyName: currentName,
+                              ),
+                            ),
+                          );
                         },
                       ),
                       _DashboardTile(
@@ -154,7 +178,15 @@ class PartyDetailsScreen extends StatelessWidget {
                         title: 'Chat',
                         subtitle: 'Party messages',
                         onTap: () {
-                          _showComingSoon(context, 'Chat');
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatScreen(
+                                partyId: partyId,
+                                partyName: currentName,
+                              ),
+                            ),
+                          );
                         },
                       ),
                       _DashboardTile(
@@ -184,10 +216,15 @@ class PartyDetailsScreen extends StatelessWidget {
     );
   }
 
-  void _showComingSoon(BuildContext context, String featureName) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('$featureName is coming next.')));
+  void _showComingSoon(
+    BuildContext context,
+    String featureName,
+  ) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$featureName is coming next.'),
+      ),
+    );
   }
 }
 
@@ -212,31 +249,46 @@ class _PartyHeaderCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Icon(Icons.forest_outlined, size: 42),
+            const Icon(
+              Icons.forest_outlined,
+              size: 42,
+            ),
             const SizedBox(height: 14),
             Text(
               partyName,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 8),
-            Text(description.isEmpty ? 'No description added.' : description),
+            Text(
+              description.isEmpty
+                  ? 'No description added.'
+                  : description,
+            ),
             const SizedBox(height: 20),
             Wrap(
               spacing: 12,
               runSpacing: 8,
               children: [
                 Chip(
-                  avatar: const Icon(Icons.people_outline, size: 18),
+                  avatar: const Icon(
+                    Icons.people_outline,
+                    size: 18,
+                  ),
                   label: Text(
-                    '$memberCount ${memberCount == 1 ? 'member' : 'members'}',
+                    '$memberCount '
+                    '${memberCount == 1 ? 'member' : 'members'}',
                   ),
                 ),
                 Chip(
-                  avatar: const Icon(Icons.check_circle_outline, size: 18),
+                  avatar: const Icon(
+                    Icons.check_circle_outline,
+                    size: 18,
+                  ),
                   label: Text(
-                    '$openTaskCount open ${openTaskCount == 1 ? 'task' : 'tasks'}',
+                    '$openTaskCount open '
+                    '${openTaskCount == 1 ? 'task' : 'tasks'}',
                   ),
                 ),
               ],
@@ -274,20 +326,23 @@ class _DashboardTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, size: 34),
+              Icon(
+                icon,
+                size: 34,
+              ),
               const Spacer(),
               if (value != null)
                 Text(
                   value!,
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                 ),
               Text(
                 title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 3),
               Text(
